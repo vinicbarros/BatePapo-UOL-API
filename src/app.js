@@ -2,6 +2,8 @@ import express, { json } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
+import dayjs from "dayjs";
+import joi from "joi";
 dotenv.config();
 
 const app = express();
@@ -19,19 +21,39 @@ client.connect().then(() => {
 
 app.get("/participants", async (req, res) => {
   try {
-    const users = await db.collection("teste1").find().toArray();
+    const users = await db.collection("users").find().toArray();
     res.send(users);
   } catch (error) {
     res.sendStatus(500);
   }
 });
 
+const userSchema = joi.object({
+  name: joi.string().required(),
+});
+
 app.post("/participants", async (req, res) => {
   const { name } = req.body;
+  const findUser = db.collection("users").findOne({ name: name });
+  const validate = userSchema.validate(req.body, { abortEarly: false });
+
+  if (validate.error) {
+    const error = validate.error.details.map((detail) => detail.message);
+    return res.status(422).send(error);
+  } else if (await findUser) {
+    return res.status(409).send("Esse usuário já está logado");
+  }
   try {
-    const user = await db.collection("teste1").insertOne({
+    const user = await db.collection("users").insertOne({
       name,
       lastStatus: Date.now(),
+    });
+    await db.collection("messages").insertOne({
+      from: name,
+      to: "Todos",
+      text: "entra na sala...",
+      type: "status",
+      time: dayjs(Date.now()).format("HH:MM:ss"),
     });
     res.sendStatus(201);
   } catch (error) {
@@ -45,14 +67,20 @@ app.get("/messages", async (req, res) => {
   let aux = 0;
   if (limit < 0) limit = aux;
   try {
-    const messages = await db.collection("teste2").find().toArray();
+    const messages = await db.collection("messages").find().toArray();
     const toUserMessages = messages.filter((msg) => {
-      msg.to === user || msg.type === "message" || msg.from === user;
+      return (
+        msg.to === user ||
+        msg.type === "message" ||
+        msg.from === user ||
+        msg.to === "Todos"
+      );
     });
-    res.send(toUserMessages.slice(-limit));
+    res.send(toUserMessages);
   } catch (err) {
     res.sendStatus(409);
   }
 });
 
+app.post();
 app.listen(5000);
