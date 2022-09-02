@@ -53,7 +53,7 @@ app.post("/participants", async (req, res) => {
       to: "Todos",
       text: "entra na sala...",
       type: "status",
-      time: dayjs(Date.now()).format("HH:MM:ss"),
+      time: dayjs(Date.now()).format("HH:mm:ss"),
     });
     res.sendStatus(201);
   } catch (error) {
@@ -82,5 +82,40 @@ app.get("/messages", async (req, res) => {
   }
 });
 
-app.post();
+const msgSchema = joi.object({
+  to: joi.string().required(),
+  text: joi.string().required(),
+  type: joi.string().valid("message", "private_message").required(),
+});
+
+app.post("/messages", async (req, res) => {
+  const { user } = req.headers;
+  const { to, text, type } = req.body;
+  const isUserLogged = await db.collection("users").findOne({ name: user });
+  const validate = msgSchema.validate(req.body, { abortEarly: false });
+
+  if (validate.error) {
+    const error = validate.error.details.map((detail) => detail.message);
+    return res.status(422).send(error);
+  } else if (!isUserLogged) {
+    return res.status(409).send({ message: "O usuário não está logado!" });
+  }
+
+  try {
+    await db.collection("messages").insertOne({
+      to,
+      text,
+      type,
+      from: user,
+      time: dayjs(Date.now()).format("HH:mm:ss"),
+    });
+    res.sendStatus(201);
+  } catch (error) {
+    res.sendStatus(409);
+  }
+});
+
+/* app.post("/status", (req, res) => {
+  const { User } = req.headers;
+}); */
 app.listen(5000);
