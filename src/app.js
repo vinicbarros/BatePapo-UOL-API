@@ -44,7 +44,7 @@ app.post("/participants", async (req, res) => {
     return res.status(409).send("Esse usuário já está logado");
   }
   try {
-    const user = await db.collection("users").insertOne({
+    await db.collection("users").insertOne({
       name,
       lastStatus: Date.now(),
     });
@@ -115,7 +115,24 @@ app.post("/messages", async (req, res) => {
   }
 });
 
-/* app.post("/status", (req, res) => {
-  const { User } = req.headers;
-}); */
+app.post("/status", async (req, res) => {
+  const { user } = req.headers;
+  const isUserLogged = await db.collection("users").findOne({ name: user });
+
+  if (!isUserLogged) {
+    return res
+      .status(404)
+      .send({ message: "O usuário não está na lista de participantes!" });
+  }
+
+  try {
+    await db
+      .collection("users")
+      .updateOne({ name: user }, { $set: { lastStatus: Date.now() } });
+    res.sendStatus(200);
+  } catch (error) {
+    res.sendStatus(404);
+  }
+});
+
 app.listen(5000);
