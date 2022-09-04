@@ -1,7 +1,7 @@
 import express, { json } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dayjs from "dayjs";
 import joi from "joi";
 dotenv.config();
@@ -132,6 +132,42 @@ app.post("/status", async (req, res) => {
     res.sendStatus(200);
   } catch (error) {
     res.sendStatus(404);
+  }
+});
+
+setInterval(async () => {
+  const users = await db.collection("users").find().toArray();
+  const filteredUsers = users.filter((user) => {
+    return Date.now() - user.lastStatus > 10000;
+  });
+  filteredUsers.forEach(async (inactive) => {
+    await db.collection("users").deleteOne({ _id: inactive._id });
+    await db.collection("messages").insertOne({
+      to: "Todos",
+      text: "sai da sala...",
+      type: "status",
+      from: inactive.name,
+      time: dayjs(Date.now()).format("HH:mm:ss"),
+    });
+  });
+}, 15000);
+
+app.delete("/messages/:ID_DA_MENSAGEM", async (req, res) => {
+  const id = req.params.ID_DA_MENSAGEM;
+  const { user } = req.headers;
+  const userMessage = await db
+    .collection("messages")
+    .findOne({ _id: ObjectId(id) });
+  if (!(userMessage.from === user)) {
+    return res
+      .status(401)
+      .send({ message: "O usuário logado não é o dono da mensagem!" });
+  }
+  try {
+    await db.collection("messages").deleteOne({ _id: ObjectId(id) });
+    res.sendStatus(200);
+  } catch (error) {
+    res.status(404).send(error);
   }
 });
 
