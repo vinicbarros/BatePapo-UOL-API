@@ -33,6 +33,39 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Visual Studio Code](https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white)
 
+### How to run
+
+Clone the project
+
+```bash
+  git clone https://github.com/vinicbarros/BatePapo-UOL-API.git
+```
+
+Go to the project directory
+
+```bash
+  cd BatePapo-UOL-API
+```
+
+Install dependencies
+
+```bash
+  npm install
+```
+
+Go to src directory
+
+```bash
+  cd src
+```
+
+Start the server
+
+```bash
+  node index.js
+```
+
+
 ## Contact
 
 Feel free to contact me in Linkedin!
